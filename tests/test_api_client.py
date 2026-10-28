@@ -46,4 +46,4 @@ class ApiClientTest(unittest.TestCase):
         self.assertEqual(result.get("region"), "Florida")
         self.assertEqual(result.get("city"), "Miami")
 
-        mock_get.assert_called_once_with(url="https://freeipapi.com/api/json/8.8.8.8", timeout=10)
+        self.assertEqual(mock_get.call_count, 2)

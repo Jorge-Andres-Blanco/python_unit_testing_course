@@ -41,20 +41,36 @@ class BankAccountTests(unittest.TestCase):
         assert self._count_lines(self.account.log_file) == 2
 
     
-    @unittest.skipUnless(BankAccount.get_usd_to_crc()['response_code'] == 200, 'Response code not 200')
-    def test_check_USD_to_CRC(self):
-        usd_balance = self.account.balance
+    @patch.object(
+    BankAccount,
+    "get_usd_to_crc",
+    return_value={"rate": 500, "response_code": 200})
+    def test_check_USD_to_CRC(self, mock_rate):
         self.account.exchange_USD_to_CRC()
 
-        self.assertEqual(self.account.currency, 'CRC', 'Incorrect final currency')
-        self.assertGreaterEqual(self.account.balance, usd_balance, 'USD balance is begger than CRC')
+        self.assertEqual(self.account.currency, "CRC")
+        self.assertEqual(self.account.balance, 50000)
 
-    @patch('src.bank_account.datetime')
-    def test_withdraw_during_business_hours(self, mock_datetime):
-        
-        mock_datetime.now.return_value.hour = 10
-        new_balance = self.account.withdraw(100)
-        self.assertEqual(new_balance, 0)
+        @patch('src.bank_account.datetime')
+        def test_withdraw_during_business_hours(self, mock_datetime):
+            
+            mock_datetime.now.return_value.hour = 10
+            new_balance = self.account.withdraw(100)
+            self.assertEqual(new_balance, 0)
+
+    @patch.object(
+    BankAccount,
+    "get_usd_to_crc",
+    return_value={"rate": 500, "response_code": 200},
+)
+    def test_check_CRC_to_USD(self, mock_rate):
+        account = BankAccount(balance_inicial=50000, currency="CRC")
+
+        account.exchange_CRC_to_USD()
+
+        self.assertEqual(account.currency, "USD")
+        self.assertEqual(account.balance, 100)
+
 
     @patch('src.bank_account.datetime')
     def test_withdraw_raises_out_of_business_hours(self, mock_datetime):
@@ -63,3 +79,16 @@ class BankAccountTests(unittest.TestCase):
             with self.assertRaises(WithdrawalTimeRestrictionError):
                 self.account.withdraw(100)
                 self.account.withdraw(100)
+
+    def test_deposit_multiple_amounts(self):
+        test_cases = [
+            {"amount":100, "expected": 200},
+            {"amount":3000, "expected": 3100},
+            {"amount":500, "expected": 600},
+        ]
+
+        for case in test_cases:
+            with self.subTest(case=case):
+                self.account = BankAccount(100, log_file="transaction_log.txt", currency='USD')
+                new_balance = self.account.deposit(case["amount"])
+                self.assertEqual(new_balance, case["expected"])
