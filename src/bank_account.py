@@ -1,4 +1,6 @@
 import requests
+from datetime import datetime
+from src.exceptions import WithdrawalTimeRestrictionError
 
 class BankAccount:
     
@@ -48,6 +50,11 @@ class BankAccount:
         return self.balance
 
     def withdraw(self, amount):
+
+        now = datetime.now()
+        if now.hour < 8 or now.hour > 17:
+            raise WithdrawalTimeRestrictionError("Withdrawals are only allowed between 8am and 5 pm")
+
         if amount>0:
             self.balance -= amount
             self._log_transaction(f"Withdrew: {amount}. Current Balance: {self.currency} {self.balance}")

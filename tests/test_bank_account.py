@@ -1,6 +1,8 @@
 import unittest
 import os
 from src.bank_account import BankAccount
+from unittest.mock import patch
+from src.exceptions import WithdrawalTimeRestrictionError
 
 class BankAccountTests(unittest.TestCase):
 
@@ -46,3 +48,18 @@ class BankAccountTests(unittest.TestCase):
 
         self.assertEqual(self.account.currency, 'CRC', 'Incorrect final currency')
         self.assertGreaterEqual(self.account.balance, usd_balance, 'USD balance is begger than CRC')
+
+    @patch('src.bank_account.datetime')
+    def test_withdraw_during_business_hours(self, mock_datetime):
+        
+        mock_datetime.now.return_value.hour = 10
+        new_balance = self.account.withdraw(100)
+        self.assertEqual(new_balance, 0)
+
+    @patch('src.bank_account.datetime')
+    def test_withdraw_raises_out_of_business_hours(self, mock_datetime):
+            
+            mock_datetime.now.side_effect = [unittest.mock.Mock(hour=7), unittest.mock.Mock(hour=18)]
+            with self.assertRaises(WithdrawalTimeRestrictionError):
+                self.account.withdraw(100)
+                self.account.withdraw(100)
