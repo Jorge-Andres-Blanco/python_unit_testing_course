@@ -22,7 +22,10 @@ class BankAccountTests(unittest.TestCase):
         balance = self.account.deposit(100)
         assert balance == 200
 
-    def test_withdraw(self):
+    @patch('src.bank_account.datetime')
+    def test_withdraw(self, mock_datetime):
+        mock_datetime.now.return_value.hour = 10
+        
         balance = self.account.withdraw(100)
         assert balance == 0
 
